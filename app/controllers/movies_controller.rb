@@ -5,30 +5,41 @@ class MoviesController < ApplicationController
     @movie = Movie.find(id) # look up movie by unique ID
     # will render app/views/movies/show.<extension> by default
   end
-
+  
   def index
-    sort = params[:sort] || session[:sort]
-    case sort
-    when 'title'
-      ordering,@title_header = {:order => :title}, 'hilite'
-    when 'release_date'
-      ordering,@date_header = {:order => :release_date}, 'hilite'
-    end
-    @all_ratings = Movie.all_ratings
-    @selected_ratings = params[:ratings] || session[:ratings] || {}
-
-    if params[:sort] != session[:sort]
-      session[:sort] = sort
-      redirect_to :sort => sort, :ratings => @selected_ratings and return
-    end
-
-    if params[:ratings] != session[:ratings] and @selected_ratings != {}
-      session[:sort] = sort
-      session[:ratings] = @selected_ratings
-      redirect_to :sort => sort, :ratings => @selected_ratings and return
-    end
-    @movies = Movie.find_all_by_rating(@selected_ratings.keys, ordering)
-  end
+     @movies = Movie.all
+     @all_ratings = Movie.ratings
+     @checkbox_rating_selections = []
+     if !params[:ratings].nil? 
+     @checkbox_rating_selections = params[:ratings].keys
+     @movies = Movie.where(:rating =>@checkbox_rating_selections) # filter based on rating selections    
+     session[:rating_selections] = @checkbox_rating_selections # remember rating selections 
+     end
+     @checked_values = session[:rating_selections]
+     if !session[:rating_selections].nil?
+     @movies = Movie.where(:rating=>@checked_values)
+     end
+     #added below for hw2-part1. sorting and filtering
+     if params.has_key? :title_header
+     session[:title_header] = params[:title_header]
+     session[:title_release_date] = nil
+     @movies = Movie.where(:rating=>@checked_values).order(params[:title_header])
+     @css_title_header_class = 'hilite'
+     elsif params.has_key? :title_release_date
+     session[:title_release_date] = params[:title_release_date]
+     session[:title_header] = nil
+     @css_release_date_header_class = 'hilite'
+     @movies = Movie.where(:rating=>@checked_values).order(params[:title_release_date])
+     end  
+     if !session[:title_header].nil? == true && params[:title_release_date].nil? == true  
+     @movies = Movie.where(:rating=>@checked_values).order(session[:title_header])
+     @css_title_header_class = 'hilite'
+     end
+     if !session[:title_release_date].nil? == true && params[:title_header].nil? == true
+     @movies = Movie.where(:rating=>@checked_values).order(session[:title_release_date])
+     @css_release_date_header_class = 'hilite'
+     end
+ end
 
   def new
     # default: render 'new' template
